@@ -338,6 +338,75 @@
     const startBtn = document.getElementById('start-btn');
     const restartBtn = document.getElementById('restart-btn');
 
+    // Audio Synthesizer (Web Audio API)
+    let audioCtx = null;
+
+    function initAudio() {
+      if (!audioCtx) {
+        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+    }
+
+    function playLaserSound() {
+      if (!audioCtx) return;
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    }
+
+    function playExplosionSound() {
+      if (!audioCtx) return;
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function playHitSound() {
+      if (!audioCtx) return;
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.2);
+      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.2);
+    }
+
+    function playBossFireSound() {
+      if (!audioCtx) return;
+      let osc = audioCtx.createOscillator();
+      let gain = audioCtx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(300, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.25);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.25);
+    }
+
     // Game Variables
     let gameActive = false;
     let distance = 0;
@@ -384,6 +453,7 @@
 
     // Launch Game
     startBtn.addEventListener('click', () => {
+      initAudio();
       startScreen.classList.add('hidden');
       resetGame();
       gameActive = true;
@@ -391,6 +461,7 @@
     });
 
     restartBtn.addEventListener('click', () => {
+      initAudio();
       gameOverScreen.classList.add('hidden');
       resetGame();
       gameActive = true;
@@ -419,16 +490,14 @@
     }
 
     function spawnEnemies() {
-      if (boss) return; // Don't spawn normal waves when Boss active
+      if (boss) return;
 
-      // Spawn every few frames
       if (frame % 45 === 0 && distance < 200) {
         let type = 'green';
         let rand = Math.random();
         if (rand > 0.7) type = 'red';
         else if (rand > 0.4) type = 'orange';
 
-        // Check for White Vanguard every 20 LY
         if (Math.floor(distance) > 0 && Math.floor(distance) % 20 === 0 && frame % 120 === 0) {
           type = 'white';
         }
@@ -451,7 +520,7 @@
         y: 60,
         w: 100,
         h: 70,
-        hp: 180, // ULTRA BUFFED HP
+        hp: 180,
         maxHp: 180,
         dx: 4,
         fireCooldown: 0,
@@ -463,6 +532,7 @@
       if (ammo <= 0) return;
       bullets.push({ x: player.x + player.w / 2 - 3, y: player.y, w: 6, h: 14, speed: 10 });
       ammo--;
+      playLaserSound();
       updateUI();
     }
 
@@ -486,11 +556,9 @@
       if (keys['KeyW'] || keys['ArrowUp']) player.y -= player.speed;
       if (keys['KeyS'] || keys['ArrowDown']) player.y += player.speed;
 
-      // Keep inside bounds
       player.x = Math.max(0, Math.min(canvas.width - player.w, player.x));
       player.y = Math.max(0, Math.min(canvas.height - player.h, player.y));
 
-      // Player Auto Fire / Space shoot
       if (keys['Space'] && frame % 8 === 0) {
         shootPlayerBullet();
       } else if (isDragging && frame % 10 === 0) {
@@ -522,25 +590,21 @@
         if (b.y < -10) bullets.splice(i, 1);
       });
 
-      // Spawn Enemies
       spawnEnemies();
 
-      // Enemy Logic & Tracking AI
+      // Enemy Logic & Homing AI
       enemies.forEach((e, index) => {
         e.y += e.speedY;
 
-        // HOMING ENEMY AI: Track player horizontally
         let dx = (player.x + player.w / 2) - (e.x + e.w / 2);
         if (Math.abs(dx) > 4) {
-          e.x += Math.sign(dx) * 1.6; // Moves toward player location
+          e.x += Math.sign(dx) * 1.6;
         }
 
-        // Enemy Shooting
         if ((e.type === 'red' || e.type === 'orange') && Math.random() < 0.015) {
           enemyBullets.push({ x: e.x + e.w / 2, y: e.y + e.h, vx: 0, vy: 5 });
         }
 
-        // Render Enemies
         ctx.fillStyle = e.type === 'green' ? '#00ff66' : (e.type === 'orange' ? '#ff9900' : (e.type === 'red' ? '#ff0055' : '#ffffff'));
         ctx.fillRect(e.x, e.y, e.w, e.h);
 
@@ -548,6 +612,7 @@
         if (e.x < player.x + player.w && e.x + e.w > player.x && e.y < player.y + player.h && e.y + e.h > player.y) {
           enemies.splice(index, 1);
           hits++;
+          playHitSound();
           updateUI();
           if (hits >= 3) triggerGameOver(false);
         }
@@ -560,6 +625,7 @@
             if (e.hp <= 0) {
               enemies.splice(index, 1);
               score += 50;
+              playExplosionSound();
               updateUI();
             }
           }
@@ -570,23 +636,20 @@
 
       // BOSS LOGIC
       if (boss) {
-        // Move Boss
         boss.x += boss.dx;
         if (boss.x <= 20 || boss.x + boss.w >= canvas.width - 20) boss.dx *= -1;
 
-        // Boss Heavy Spread-Shot Attacks
         boss.fireCooldown++;
         if (boss.fireCooldown > 35) {
-          // Fire 3-way spread pattern
           enemyBullets.push(
             { x: boss.x + boss.w / 2 - 20, y: boss.y + boss.h, vx: -2.5, vy: 6 },
             { x: boss.x + boss.w / 2, y: boss.y + boss.h, vx: 0, vy: 6 },
             { x: boss.x + boss.w / 2 + 20, y: boss.y + boss.h, vx: 2.5, vy: 6 }
           );
           boss.fireCooldown = 0;
+          playBossFireSound();
         }
 
-        // Boss Summons Escort Soldiers
         boss.escortCooldown++;
         if (boss.escortCooldown > 180) {
           enemies.push({ x: boss.x - 20, y: boss.y, w: 25, h: 25, type: 'red', hp: 3, speedY: 2 });
@@ -594,7 +657,6 @@
           boss.escortCooldown = 0;
         }
 
-        // Render Boss
         ctx.fillStyle = '#ff0055';
         ctx.fillRect(boss.x, boss.y, boss.w, boss.h);
 
@@ -604,13 +666,14 @@
         ctx.fillStyle = '#ff0055';
         ctx.fillRect(canvas.width / 2 - 100, 15, (boss.hp / boss.maxHp) * 200, 12);
 
-        // Player Bullet hits Boss
         bullets.forEach((b, bi) => {
           if (b.x < boss.x + boss.w && b.x + b.w > boss.x && b.y < boss.y + boss.h && b.y + b.h > boss.y) {
             bullets.splice(bi, 1);
             boss.hp--;
+            if (boss.hp % 5 === 0) playExplosionSound();
             if (boss.hp <= 0) {
               boss = null;
+              playExplosionSound();
               triggerGameOver(true);
             }
           }
@@ -624,10 +687,10 @@
         eb.y += eb.vy;
         ctx.fillRect(eb.x, eb.y, 6, 10);
 
-        // Hit Player
         if (eb.x < player.x + player.w && eb.x + 6 > player.x && eb.y < player.y + player.h && eb.y + 10 > player.y) {
           enemyBullets.splice(ebi, 1);
           hits++;
+          playHitSound();
           updateUI();
           if (hits >= 3) triggerGameOver(false);
         }

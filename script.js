@@ -31,3 +31,23 @@ function updateBoss() {
     boss.fireCooldown--;
   }
 }
+const startScreen = document.getElementById('start-screen');
+const startBtn = document.getElementById('start-btn');
+const gameOverScreen = document.getElementById('game-over-screen');
+const restartBtn = document.getElementById('restart-btn');
+
+// Start Mission Button Click
+if (startBtn) {
+  startBtn.addEventListener('click', () => {
+    startScreen.classList.add('hidden');
+    startGame(); // Replace with whatever function your code uses to initialize the game loop
+  });
+}
+
+// Restart Mission Button Click
+if (restartBtn) {
+  restartBtn.addEventListener('click', () => {
+    gameOverScreen.classList.add('hidden');
+    resetGame(); // Replace with your game reset function
+  });
+}

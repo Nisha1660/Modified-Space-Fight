@@ -63,10 +63,10 @@
       border-bottom: 2px solid var(--border-cyan);
       backdrop-filter: blur(8px);
       border-radius: 12px 12px 0 0;
-      padding: 12px 16px;
+      padding: 10px 14px;
       display: grid;
-      grid-template-columns: repeat(4, 1fr);
-      gap: 8px;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 4px;
       box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
       z-index: 10;
     }
@@ -80,7 +80,7 @@
 
     .hud-label {
       font-family: var(--font-heading);
-      font-size: 10px;
+      font-size: 9px;
       letter-spacing: 1px;
       color: #8fa0c0;
       text-transform: uppercase;
@@ -89,7 +89,7 @@
 
     .hud-value {
       font-family: var(--font-heading);
-      font-size: 14px;
+      font-size: 13px;
       font-weight: 700;
       color: #fff;
       text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
@@ -102,6 +102,19 @@
     #hits-value {
       color: var(--accent-red);
       text-shadow: 0 0 8px rgba(255, 0, 85, 0.6);
+    }
+
+    /* Sound Toggle Button */
+    .btn-sound {
+      background: rgba(0, 243, 255, 0.15);
+      border: 1px solid var(--border-cyan);
+      color: #fff;
+      font-family: var(--font-heading);
+      font-size: 10px;
+      border-radius: 6px;
+      padding: 2px 4px;
+      cursor: pointer;
+      margin-top: 2px;
     }
 
     canvas {
@@ -123,7 +136,7 @@
       left: 0;
       width: 100%;
       height: 100%;
-      background: rgba(5, 7, 17, 0.92);
+      background: rgba(5, 7, 17, 0.94);
       backdrop-filter: blur(10px);
       display: flex;
       flex-direction: column;
@@ -144,7 +157,7 @@
 
     .overlay h1 {
       font-family: var(--font-heading);
-      font-size: 30px;
+      font-size: 28px;
       font-weight: 900;
       letter-spacing: 2px;
       color: #fff;
@@ -153,7 +166,7 @@
     }
 
     .overlay p.description {
-      font-size: 15px;
+      font-size: 14px;
       line-height: 1.4;
       color: #b0c4de;
       margin-bottom: 16px;
@@ -164,27 +177,27 @@
       background: rgba(255, 255, 255, 0.03);
       border: 1px solid rgba(255, 255, 255, 0.08);
       border-radius: 8px;
-      padding: 12px 16px;
+      padding: 10px 14px;
       width: 100%;
       max-width: 360px;
       text-align: left;
-      font-size: 13px;
+      font-size: 12px;
       margin-bottom: 16px;
     }
 
     .enemy-intel-title {
       font-family: var(--font-heading);
-      font-size: 11px;
+      font-size: 10px;
       letter-spacing: 1.5px;
       color: #7188a9;
-      margin-bottom: 8px;
+      margin-bottom: 6px;
       text-transform: uppercase;
     }
 
     .enemy-row {
       display: flex;
       align-items: center;
-      margin-bottom: 6px;
+      margin-bottom: 5px;
     }
 
     .enemy-row:last-child {
@@ -196,7 +209,7 @@
       width: 10px;
       height: 10px;
       border-radius: 3px;
-      margin-right: 10px;
+      margin-right: 8px;
       box-shadow: 0 0 8px currentColor;
     }
 
@@ -208,7 +221,7 @@
     .controls-hint {
       font-size: 12px;
       color: #8a9cb5;
-      margin-bottom: 20px;
+      margin-bottom: 18px;
       line-height: 1.5;
     }
 
@@ -275,6 +288,10 @@
         <span class="hud-label">Score</span>
         <div class="hud-value"><span id="score">0</span></div>
       </div>
+      <div class="hud-item">
+        <span class="hud-label">Audio</span>
+        <button id="sound-btn" class="btn-sound">SFX: ON</button>
+      </div>
     </div>
 
     <!-- CANVAS -->
@@ -337,74 +354,95 @@
     const gameOverMsg = document.getElementById('game-over-msg');
     const startBtn = document.getElementById('start-btn');
     const restartBtn = document.getElementById('restart-btn');
+    const soundBtn = document.getElementById('sound-btn');
 
-    // Audio Synthesizer (Web Audio API)
+    // Web Audio Synthesizer
     let audioCtx = null;
+    let soundEnabled = true;
 
     function initAudio() {
       if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        audioCtx = new AudioContext();
+      }
+      if (audioCtx.state === 'suspended') {
+        audioCtx.resume();
       }
     }
 
+    // Toggle Sound Button
+    soundBtn.addEventListener('click', () => {
+      initAudio();
+      soundEnabled = !soundEnabled;
+      soundBtn.innerText = soundEnabled ? 'SFX: ON' : 'SFX: OFF';
+    });
+
     function playLaserSound() {
-      if (!audioCtx) return;
-      let osc = audioCtx.createOscillator();
-      let gain = audioCtx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(800, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(100, audioCtx.currentTime + 0.15);
-      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.15);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.15);
+      if (!soundEnabled || !audioCtx) return;
+      try {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(900, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(120, audioCtx.currentTime + 0.12);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.12);
+      } catch (e) {}
     }
 
     function playExplosionSound() {
-      if (!audioCtx) return;
-      let osc = audioCtx.createOscillator();
-      let gain = audioCtx.createGain();
-      osc.type = 'square';
-      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
-      osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.3);
-      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.3);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.3);
+      if (!soundEnabled || !audioCtx) return;
+      try {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(180, audioCtx.currentTime);
+        osc.frequency.exponentialRampToValueAtTime(20, audioCtx.currentTime + 0.25);
+        gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.25);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.25);
+      } catch (e) {}
     }
 
     function playHitSound() {
-      if (!audioCtx) return;
-      let osc = audioCtx.createOscillator();
-      let gain = audioCtx.createGain();
-      osc.type = 'triangle';
-      osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-      osc.frequency.linearRampToValueAtTime(120, audioCtx.currentTime + 0.2);
-      gain.gain.setValueAtTime(0.4, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.2);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.2);
+      if (!soundEnabled || !audioCtx) return;
+      try {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(250, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(60, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      } catch (e) {}
     }
 
     function playBossFireSound() {
-      if (!audioCtx) return;
-      let osc = audioCtx.createOscillator();
-      let gain = audioCtx.createGain();
-      osc.type = 'sawtooth';
-      osc.frequency.setValueAtTime(300, audioCtx.currentTime);
-      osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.25);
-      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
-      gain.gain.linearRampToValueAtTime(0, audioCtx.currentTime + 0.25);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + 0.25);
+      if (!soundEnabled || !audioCtx) return;
+      try {
+        let osc = audioCtx.createOscillator();
+        let gain = audioCtx.createGain();
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+        osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.2);
+        gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+        gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start();
+        osc.stop(audioCtx.currentTime + 0.2);
+      } catch (e) {}
     }
 
     // Game Variables
@@ -435,12 +473,12 @@
     }
 
     // Controls
-    window.addEventListener('keydown', e => keys[e.code] = true);
+    window.addEventListener('keydown', e => { initAudio(); keys[e.code] = true; });
     window.addEventListener('keyup', e => keys[e.code] = false);
 
     // Touch / Drag controls
     let isDragging = false;
-    canvas.addEventListener('touchstart', e => { isDragging = true; handleTouch(e); });
+    canvas.addEventListener('touchstart', e => { initAudio(); isDragging = true; handleTouch(e); });
     canvas.addEventListener('touchmove', e => { if(isDragging) handleTouch(e); });
     canvas.addEventListener('touchend', () => { isDragging = false; });
 

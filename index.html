@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Space Fight - 200 LY Boss Assault</title>
+  
+  <!-- Sci-Fi Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Rajdhani:wght@500;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg-dark: #050711;
+      --card-bg: rgba(13, 19, 38, 0.85);
+      --border-cyan: #00f3ff;
+      --accent-neon: #00ffaa;
+      --accent-orange: #ff9900;
+      --accent-red: #ff0055;
+      --text-main: #e0f7fc;
+      --font-heading: 'Orbitron', sans-serif;
+      --font-body: 'Rajdhani', sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 50% 20%, rgba(0, 243, 255, 0.08) 0%, transparent 60%),
+        radial-gradient(circle at 80% 80%, rgba(255, 0, 85, 0.05) 0%, transparent 50%);
+      color: var(--text-main);
+      font-family: var(--font-body);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #game-container {
+      position: relative;
+      width: 100%;
+      max-width: 500px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 10px;
+    }
+
+    .hud {
+      width: 100%;
+      background: var(--card-bg);
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-bottom: 2px solid var(--border-cyan);
+      backdrop-filter: blur(8px);
+      border-radius: 12px 12px 0 0;
+      padding: 12px 16px;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      box-shadow: 0 0 20px rgba(0, 243, 255, 0.15);
+      z-index: 10;
+    }
+
+    .hud-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    .hud-label {
+      font-family: var(--font-heading);
+      font-size: 10px;
+      letter-spacing: 1px;
+      color: #8fa0c0;
+      text-transform: uppercase;
+      margin-bottom: 2px;
+    }
+
+    .hud-value {
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 700;
+      color: #fff;
+      text-shadow: 0 0 8px rgba(0, 243, 255, 0.6);
+    }
+
+    .hud-value span {
+      color: var(--border-cyan);
+    }
+
+    #hits-value {
+      color: var(--accent-red);
+      text-shadow: 0 0 8px rgba(255, 0, 85, 0.6);
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: auto;
+      max-height: 70vh;
+      background: #000;
+      border: 1px solid rgba(0, 243, 255, 0.3);
+      border-top: none;
+      border-bottom-left-radius: 12px;
+      border-bottom-right-radius: 12px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 243, 255, 0.1);
+    }
+
+    .overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(5, 7, 17, 0.92);
+      backdrop-filter: blur(10px);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      padding: 30px 24px;
+      border-radius: 12px;
+      z-index: 20;
+      text-align: center;
+      transition: opacity 0.3s ease, visibility 0.3s ease;
+    }
+
+    .overlay.hidden {
+      opacity: 0;
+      visibility: hidden;
+      pointer-events: none;
+    }
+
+    .overlay h1 {
+      font-family: var(--font-heading);
+      font-size: 32px;
+      font-weight: 900;
+      letter-spacing: 3px;
+      color: #fff;
+      text-shadow: 0 0 15px var(--border-cyan), 0 0 30px var(--border-cyan);
+      margin-bottom: 12px;
+    }
+
+    .overlay p.description {
+      font-size: 16px;
+      line-height: 1.4;
+      color: #b0c4de;
+      margin-bottom: 20px;
+      max-width: 380px;
+    }
+
+    .enemy-intel {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 12px 16px;
+      width: 100%;
+      max-width: 360px;
+      text-align: left;
+      font-size: 14px;
+      margin-bottom: 20px;
+    }
+
+    .enemy-intel-title {
+      font-family: var(--font-heading);
+      font-size: 11px;
+      letter-spacing: 1.5px;
+      color: #7188a9;
+      margin-bottom: 8px;
+      text-transform: uppercase;
+    }
+
+    .enemy-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 6px;
+    }
+
+    .enemy-row:last-child {
+      margin-bottom: 0;
+    }
+
+    .badge {
+      display: inline-block;
+      width: 12px;
+      height: 12px;
+      border-radius: 3px;
+      margin-right: 10px;
+      box-shadow: 0 0 8px currentColor;
+    }
+
+    .badge-green { background: #00ff66; color: #00ff66; }
+    .badge-orange { background: #ff9900; color: #ff9900; }
+    .badge-red { background: #ff0055; color: #ff0055; }
+    .badge-white { background: #ffffff; color: #ffffff; }
+
+    .controls-hint {
+      font-size: 13px;
+      color: #8a9cb5;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .controls-hint b {
+      color: var(--border-cyan);
+    }
+
+    .btn-action {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      color: #050711;
+      background: linear-gradient(135deg, var(--accent-neon), var(--border-cyan));
+      border: none;
+      border-radius: 30px;
+      padding: 14px 40px;
+      cursor: pointer;
+      box-shadow: 0 0 20px rgba(0, 255, 170, 0.4);
+      transition: all 0.2s ease;
+    }
+
+    .btn-action:hover {
+      transform: translateY(-2px) scale(1.03);
+      box-shadow: 0 0 30px rgba(0, 255, 170, 0.7);
+    }
+
+    .btn-action:active {
+      transform: translateY(1px);
+    }
+
+    #game-over-screen h1 {
+      color: var(--accent-red);
+      text-shadow: 0 0 15px var(--accent-red), 0 0 30px var(--accent-red);
+    }
+
+    .final-stats {
+      font-size: 18px;
+      color: #fff;
+      margin-bottom: 20px;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="game-container">
+    
+    <!-- HUD -->
+    <div class="hud">
+      <div class="hud-item">
+        <span class="hud-label">Distance</span>
+        <div class="hud-value"><span id="dist">0</span>/200 LY</div>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Ammo</span>
+        <div class="hud-value"><span id="ammo">1000</span></div>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Damage</span>
+        <div class="hud-value" id="hits-value"><span id="hits">0</span>/3</div>
+      </div>
+      <div class="hud-item">
+        <span class="hud-label">Score</span>
+        <div class="hud-value"><span id="score">0</span></div>
+      </div>
+    </div>
+
+    <!-- CANVAS -->
+    <canvas id="gameCanvas" width="500" height="700"></canvas>
+
+    <!-- START MISSION OVERLAY -->
+    <div id="start-screen" class="overlay">
+      <h1>SPACE FIGHT</h1>
+      <p class="description">Survive <b>200 Light Years</b> while enemy armadas target your ship directly, then defeat the Ultra-Buffed Mothership!</p>
+      
+      <div class="enemy-intel">
+        <div class="enemy-intel-title">Threat Intelligence</div>
+        <div class="enemy-row">
+          <span class="badge badge-green"></span>
+          <span>Green Soldiers: Homing Interceptors</span>
+        </div>
+        <div class="enemy-row">
+          <span class="badge badge-orange"></span>
+          <span>Orange Soldiers: Aggressive Pursuit</span>
+        </div>
+        <div class="enemy-row">
+          <span class="badge badge-red"></span>
+          <span>Red Soldiers: Heavy Targeting Fire</span>
+        </div>
+        <div class="enemy-row">
+          <span class="badge badge-white"></span>
+          <span>White Vanguard: Tactical Strike (Every 20 LY)</span>
+        </div>
+      </div>
+
+      <div class="controls-hint">
+        <b>Desktop:</b> WASD / Arrow Keys to move, SPACE to shoot<br>
+        <b>Mobile:</b> Drag anywhere to move & auto-fire
+      </div>
+
+      <button id="start-btn" class="btn-action">LAUNCH MISSION</button>
+    </div>
+
+    <!-- GAME OVER / VICTORY OVERLAY -->
+    <div id="game-over-screen" class="overlay hidden">
+      <h1 id="game-over-title">MISSION FAILED</h1>
+      <div id="game-over-msg" class="final-stats">Your ship was destroyed in deep space.</div>
+      <button id="restart-btn" class="btn-action">RETRY MISSION</button>
+    </div>
+
+  </div>
+
+  <script src="script.js"></script>
+</body>
+</html>
